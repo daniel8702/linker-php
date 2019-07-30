@@ -1,0 +1,110 @@
+{% extends 'base.html.twig' %}
+{% block body %}<br/>
+    <form>
+        <div class="form-row">
+            <div class="col-md-12 mb-3">
+                <label for="validationDefaultUsername">LINK [SPACE] KEY WORD [SPACE] ADDRESS</label>
+                <div class="input-group">
+                <textarea class="form-control rounded-20" cols="60" rows="16" id="linksData" name="reviews"
+                          maxlength=250
+                          required></textarea>
+                </div>
+            </div>
+        </div>
+        <button class="btn btn-primary" id="getAll">Get all status</button>
+    </form>
+    <br/>
+
+    <div id="alerts">
+    </div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        const button = document.getElementById('getAll');
+        const responseContainer = document.getElementById('alerts');
+        const responseDiv = document.createElement("div");
+
+        addOnClick(button);
+
+        function addOnClick(button) {
+            button.addEventListener('click', function (event) {
+                const linksData = document.getElementById('linksData');
+                const arrayLinksData = linksData.value.split("\n");
+                console.log(arrayLinksData);
+                if (!linksData.value) {
+                    throw 'No url address'
+                }
+
+                button.disabled = true;
+                const linksSize = arrayLinksData.length;
+
+                for (let i = 0; i < linksSize; i++) {
+                    const argumentArray = arrayLinksData[i].split(' ');
+                    console.log(argumentArray);
+
+                    if (argumentArray.length !== 3) {
+                        alert('Invalid one or more arguments must be 3 have ' + argumentArray.length);
+                        button.disabled = false;
+                        throw 'Invalid one or more arguments';
+                    }
+                    const path = '{{ path('key_word_linker', {'link': ''}) }}' + argumentArray;
+
+                    if (path) {
+                        sendRequest(path, argumentArray);
+                    }
+
+                }
+            })
+        }
+
+        function sendRequest(path, address) {
+            fetch(path, {'credentials': 'include'}).then(function (response) {
+                addAlert(' << Send request to :' + address, null, path);
+                response.json().then(function (jsonArray) {
+                    let jsonString = '';
+
+                    if (response.ok) {
+                        jsonString =
+                            'KEY WORD :' + jsonArray['keyWord'] +
+                            ' LINK :' + jsonArray['link'] +
+                            ' REL :' + jsonArray['rel'];
+                    } else {
+                        jsonString = jsonArray;
+
+                    }
+                    addAlert(' >> Response ' + jsonString, response.status, path);
+                    button.disabled = false;
+                })
+
+            }).catch(function () {
+            })
+        }
+
+        function addAlert(message, status = null, path) {
+            if (status === null) {
+                responseContainer.insertAdjacentHTML('afterbegin',
+                    '<div class="alert alert-secondary" role="alert">' +
+                    '<button class="btn btn-warning" id="' + path + '" onClick="addOnRefresh(this.id)">Refresh</button>' +
+                    '<button type="button" class="close" data-dismiss="alert">' +
+                    '&times;</button>' + message + '</div>');
+            } else if (status < 400) {
+                responseContainer.insertAdjacentHTML('afterbegin',
+                    '<div class="alert alert-success" role="alert">' +
+                    '<button type="button" class="close" data-dismiss="alert">' +
+                    '&times;</button>' + message + '</div>');
+            } else {
+                responseContainer.insertAdjacentHTML('afterbegin',
+                    '<div class="alert alert-danger" role="alert">' +
+                    '<button type="button" class="close" data-dismiss="alert">' +
+                    '&times;</button>' + message + '</div>');
+            }
+
+        }
+
+        function addOnRefresh(path) {
+            sendRequest(path, path.split('=')[1]);
+        }
+    </script>
+{% endblock %}
